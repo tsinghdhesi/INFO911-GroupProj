@@ -1,5 +1,5 @@
 ---
-title: "INFO911-Project-Group19"
+title: "TEST2 - INFO911-Project-Group19"
 author: "Tajveer Singh Dhesi"
 date: "2024-04-30"
 output: pdf_document
@@ -9,6 +9,15 @@ output: pdf_document
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(dplyr)
+library(rpart)
+library(leaps)
+
+```
+
+
+
+## Pre-Processing
+```{r}
 aircon = read.csv("ac_2024_04_30.csv")
 aircon = aircon[grep("Australia",aircon$Sold_in),]
 aircon <- replace(aircon,aircon == "-", "N/A")
@@ -17,7 +26,6 @@ all_cols = colnames(aircon)
 
 
 numeric_cols <- sapply(aircon, function(x) all(grepl("^(-?\\d+\\.?\\d*|N/A|-)$", x)))
-numeric_cols["COPtestAvg"]
 
 # Convert identified columns to numeric
 for (x in all_cols){
@@ -26,99 +34,166 @@ for (x in all_cols){
   }
 }
 aircon <- replace(aircon, aircon == "-" | aircon == "" | aircon == "N/A", NA)
-
-# aircon <- mutate_if(aircon, numeric_cols, function(x) {
-#   # Convert to numeric
-#   as.numeric(x)
-# })
-
 ```
 
-## Pre-Processing
 ```{r}
-names = colnames(aircon)
-features = NULL
-# aircon$sri2010_cool
-# aircon$sri2010_heat
-# aircon$Rated.AEER
-# aircon$EERtestAvg cooling
-# aircon$COPtestAvg heating
-# type denotes cooling or heating or both
-
-for (i in names) {
-  if (sum(is.na(aircon[i]))/nrow(aircon) < 0.3){
-    features = append(features, i)
+clean = function(dataSet, str){
+  dataSet = aircon %>% select(all_of(features))
+  dataSet <- replace(dataSet, dataSet == "0" | dataSet == 0 | dataSet == 0.0, NA)
+  for (i in colnames(dataSet)) {
+    if (sum(is.na(dataSet[i]))/nrow(dataSet) != 0){
+      if (i != str){
+        dataSet = dataSet %>% select(-one_of(i))
+      }
+    }
   }
+  dataSet <- mutate_if(dataSet, is.character, as.factor)
 }
-toRemove = c("ApplStandard",	"MEPSComp",	"N.Standard", "Family.Name", "Sold_in",	"Submit_ID",	"SubmitStatus", "Demand.Response.1", "Demand.Response.2", "Demand.Response.4","Demand.Response.5","Demand.Response.6","Demand.Response.7", "Demand.Response.Capability",	"Product.Class", "Demand.Response.1",	"Availability.Status",	"Product.Website",	"Representative.Brand.URL",	"Registration.Number", "Country", "Model_No", "ExpDate", "Type", "Phase")
-features = features[features != "sri2010_cool"]
-features = setdiff(features, toRemove)
+```
+```{r}
+features = NULL
+toRemove = c("ApplStandard",	"MEPSComp",	"N.Standard", "Family.Name", "Sold_in",	"Submit_ID",	"SubmitStatus", "Demand.Response.1", "Demand.Response.2","Demand.Response.4","Demand.Response.5","Demand.Response.6","Demand.Response.7", "Demand.Response.Capability",	"Product.Class", "Demand.Response.1",	"Availability.Status",	"Product.Website",	"Representative.Brand.URL",	"Registration.Number", "Country", "Model_No", "ExpDate", "Type", "Phase", "sri2010_heat", "sri2010_cool", "Star2010_Cool", "Star2010_Heat", "Brand", "Have_water_tank")
+
+temp = aircon %>% select(-all_of(toRemove))
+features = colnames(temp)
+
 features = append(features, "sri2010_heat")
-features = sort(features)
 
+# aircon_subset_heating = aircon %>% select(all_of(features))
+# aircon_subset_heating <- replace(aircon_subset_heating, aircon_subset_heating == "0" | aircon_subset_heating == 0 | aircon_subset_heating == 0.0, NA)
+# for (i in colnames(aircon_subset_heating)) {
+#   if (sum(is.na(aircon_subset_heating[i]))/nrow(aircon_subset_heating) != 0){
+#     if (i != "sri2010_heat"){
+#       aircon_subset_heating = aircon_subset_heating %>% select(-one_of(i))
+#     }
+#   }
+# }
+# aircon_subset_heating <- mutate_if(aircon_subset_heating, is.character, as.factor)
+# 
+# aircon_subset_heating = aircon_subset_heating %>% mutate()
+aircon_subset_heating = clean(aircon_subset_heating, "sri2010_heat")
 
-aircon_subset_heating = aircon %>% select(all_of(features))
-aircon_subset_heating <- mutate_if(aircon_subset_heating, is.character, as.factor)
+aircon_known_heating = subset(aircon_subset_heating, !is.na(aircon_subset_heating["sri2010_heat"]))
+aircon_unknown_heating = subset(aircon_subset_heating, is.na(aircon_subset_heating["sri2010_heat"]))
 
-replace_na_factor <- function(x) {
-  # Compute the modal value
-  mode_val <- names(sort(table(x), decreasing = TRUE))[1]
-  # Replace NA with modal value
-  x[is.na(x)] <- mode_val
-  return(x)
-}
-
-# Function to replace NA with mean for numeric columns
-replace_na_numeric <- function(x) {
-  # Compute the mean
-  mean_val <- mean(x, na.rm = TRUE)
-  # Replace NA with mean
-  x[is.na(x)] <- mean_val
-  return(x)
-}
-
-# Apply replacements based on column types
-aircon_subset_heating <- mutate_if(aircon_subset_heating, is.factor, replace_na_factor) %>%
-        mutate_if(is.numeric, replace_na_numeric)
-
-
-
-sapply(aircon_subset_heating, class)
+```
+```{r}
 features = features[features != "sri2010_heat"]
 features = append(features, "sri2010_cool")
 
 
+aircon_subset_cooling = clean(aircon_subset_cooling, "sri2010_cool")
 
+aircon_known_cooling = subset(aircon_subset_cooling, !is.na(aircon_subset_cooling["sri2010_cool"]))
+aircon_unknown_cooling = subset(aircon_subset_cooling, is.na(aircon_subset_cooling["sri2010_cool"]))
+```
 
-aircon_subset_cooling = aircon %>% select(all_of(features))
-aircon_subset_cooling <- mutate_if(aircon_subset_cooling, is.character, as.factor)
-
-aircon_subset_cooling <- mutate_if(aircon_subset_cooling, is.factor, replace_na_factor) %>%
-        mutate_if(is.numeric, replace_na_numeric)
-
-
-#Tajveer, 
-aircon_known_heating = subset(aircon_subset_heating, aircon_subset_heating["sri2010_heat"] != "NA")
-aircon_unknown_heating = subset(aircon_subset_heating, aircon_subset_heating["sri2010_heat"] == "NA")
-#Yady
-aircon_known_cooling = subset(aircon_subset_cooling, aircon_subset_cooling["sri2010_cool"] != "NA")
-aircon_unknown_cooling = subset(aircon_subset_cooling, aircon_subset_cooling["sri2010_cool"] == "NA")
-
+```{r}
+# aircon$EERtestAvg cooling
+# aircon$COPtestAvg heating
 #Lino, Thapa
-aircon_known_heating_eff = 
-aircon_unknown_heating_eff = 
-
-aircon_known_cooling_eff = 
-aircon_unknown_cooling_eff = 
+# aircon_known_heating_eff = 
+# aircon_unknown_heating_eff = 
+# 
+# aircon_known_cooling_eff = 
+# aircon_unknown_cooling_eff = 
 ```
 
 ## Modelling
 
 ```{r}
+#Multiple Linear Regression Heating
 
+#lm.fit = lm(sri2010_heat~., data = aircon_known_heating)
+
+# step.fit = step(lm.fit, direction = "both", k = log(nrow(aircon_known_heating)))
+# summary(step.fit)
+
+reg_model <- regsubsets(sri2010_heat~., data = aircon_known_heating)
+
+reg_model[[3]]
+l = summary(reg_model)$which[3,]
+
+lm_best_model <- lm(sri2010_heat ~ Rated.AEER + Refrigerant + Configuration2, data = aircon_known_heating)
+summary(lm_best_model)
+
+residuals = step.fit$residuals
+fitted_values = step.fit$fitted.values
+
+plot(fitted_values, residuals/sqrt(var(residuals)), main = "Standardized Residuals vs Fitted Values", 
+     xlab = "Fitted Values", ylab = "Standardized Residuals")
+abline(h = 0, col = "red", lty = 2)
+
+qqnorm(residuals)
+qqline(residuals)
+
+predictions <- predict(step.fit, newdata = aircon_known_heating)
+max(predictions)
+# Calculate Mean Squared Error (MSE)
+mse <- mean((aircon_known_heating$sri2010_heat - predictions)^2)
+summary(aircon_known_heating$sri2010_heat)
+```
+
+```{r}
+#Regression Tree Heating
+
+fit.tree <- rpart(sri2010_heat~., data = aircon_known_heating)
+plot(fit.tree)
+text(fit.tree, digits = 4)
+predictions <- predict(fit.tree, newdata = aircon_known_heating)
+# Calculate Mean Squared Error (MSE)
+mse <- mean((aircon_known_heating$sri2010_heat - predictions)^2)
+summary(aircon_known_heating$sri2010_heat)
+sd(aircon_known_heating$sri2010_heat)
+```
+
+```{r}
+#Multiple Linear Regression Cooling
+reg_model <- regsubsets(sri2010_cool~., data = aircon_known_cooling)
+
+summary(reg_model)$cp
+summary(reg_model)$which[4,]
+lm_best_model = lm(sri2010_cool~C.Total.Cool.Rated + Configuration2 + Rated.AEER + Refrigerant, data = aircon_known_cooling)
+summary(lm.fit)
+
+
+
+
+#lm.fit = lm(sri2010_cool~., data = aircon_known_cooling)
+
+# step.fit = step(lm.fit, direction = "both", k = log(nrow(aircon_known_cooling)))
+# summary(step.fit)
+
+residuals = lm_best_model$residuals
+fitted_values = lm_best_model$fitted.values
+
+plot(fitted_values, residuals/sqrt(var(residuals)), main = "Standardized Residuals vs Fitted Values", 
+     xlab = "Fitted Values", ylab = "Standardized Residuals")
+abline(h = 0, col = "red", lty = 2)
+
+qqnorm(residuals)
+qqline(residuals)
+
+predictions <- predict(lm_best_model, newdata = aircon_known_cooling)
+# Calculate Mean Squared Error (MSE)
+mse <- mean((aircon_known_cooling$sri2010_cool - predictions)^2)
+summary(aircon_known_cooling$sri2010_cool)
+```
+
+```{r}
+#Regression Tree Cooling
+fit.tree <- rpart(sri2010_cool~., data = aircon_known_cooling)
+plot(fit.tree)
+text(fit.tree, digits = 4)
+predictions <- predict(fit.tree, newdata = aircon_known_cooling)
+# Calculate Mean Squared Error (MSE)
+mse <- mean((aircon_known_cooling$sri2010_cool - predictions)^2)
+summary(aircon_known_cooling$sri2010_cool)
+sd(aircon_known_cooling$sri2010_cool)
 ```
 
 ## Results
 
 ```{r}
+
 ```
