@@ -19,7 +19,9 @@ library(leaps)
 ## Pre-Processing
 ```{r}
 aircon = read.csv("ac_2024_04_30.csv")
-aircon = aircon[grep("Australia",aircon$Sold_in),]
+aircon = aircon <- subset(aircon, 
+                           grepl("Available", ac_data$Availability.Status) & 
+                             grepl("Australia", ac_data$Sold_in))
 aircon <- replace(aircon,aircon == "-", "N/A")
 aircon <- replace(aircon, aircon == "", "N/A")
 all_cols = colnames(aircon)
