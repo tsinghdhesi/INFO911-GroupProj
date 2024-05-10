@@ -54,10 +54,10 @@ missing_data <- data.frame(ColumnName = names(missing_percentage_select), Missin
 
 
 ggplot(missing_data, aes(x = ColumnName, y = MissingPercentage, fill = MissingPercentage)) +
-  geom_bar(stat = "identity") +  # 使用identity告诉ggplot这是预先计算好的统计数据
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +  # 旋转x轴标签以便阅读
+  geom_bar(stat = "identity") +  
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +  
   labs(x = "Column Name", y = "Percentage of Missing Values (%)", title = "Missing Data Percentage by Column") +
-  scale_fill_gradient(low = "blue", high = "red")  # 使用渐变色填充
+  scale_fill_gradient(low = "blue", high = "red")  
 
 
 
@@ -127,10 +127,10 @@ print(Rsquared_heat)
 
 
 #for test set
-predictions <- predict(tree_model_cool, test_data)  # 根据你的模型类型更改模型名
+predictions <- predict(tree_model_cool, test_data)  
 
 # MSE
-mse_EER <- mean((test_data$AnnualOutputEER - predictions)^2)  # 更改 AnnualOutputEER 为相应的响应变量名
+mse_EER <- mean((test_data$AnnualOutputEER - predictions)^2)  
 
 # SST_SSE
 SST_EER <- sum((test_data$AnnualOutputEER - mean(test_data$AnnualOutputEER))^2)
@@ -145,10 +145,10 @@ print(paste("R-squared on test set EER:", rsquared_EER))
 
 
 
-predictions <- predict(tree_model_heat, test_data)  # 根据你的模型类型更改模型名
+predictions <- predict(tree_model_heat, test_data)  
 
 
-mse_COP <- mean((test_data$AnnualOutputCOP - predictions)^2)  # 更改 AnnualOutputEER 为相应的响应变量名
+mse_COP <- mean((test_data$AnnualOutputCOP - predictions)^2)  
 
 
 SST_COP <- sum((test_data$AnnualOutputCOP - mean(test_data$AnnualOutputCOP))^2)
