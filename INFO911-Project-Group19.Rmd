@@ -58,8 +58,8 @@ toRemove = c("ApplStandard",	"MEPSComp",	"N.Standard", "Family.Name", "Sold_in",
 
 temp = aircon %>% select(-all_of(toRemove))
 features = colnames(temp)
-
-features = append(features, "sri2010_heat")
+# Type added to features
+features = append(features, c("sri2010_heat" , "Type" ))
 
 # aircon_subset_heating = aircon %>% select(all_of(features))
 # aircon_subset_heating <- replace(aircon_subset_heating, aircon_subset_heating == "0" | aircon_subset_heating == 0 | aircon_subset_heating == 0.0, NA)
@@ -74,9 +74,9 @@ features = append(features, "sri2010_heat")
 # 
 # aircon_subset_heating = aircon_subset_heating %>% mutate()
 aircon_subset_heating = clean(aircon_subset_heating, "sri2010_heat")
-
-aircon_known_heating = subset(aircon_subset_heating, !is.na(aircon_subset_heating["sri2010_heat"]))
-aircon_unknown_heating = subset(aircon_subset_heating, is.na(aircon_subset_heating["sri2010_heat"]))
+# Type"Cooling Only has been removed from aircon_subset_heating"
+aircon_known_heating = subset(aircon_subset_heating, !is.na(aircon_subset_heating[["sri2010_heat"]])  & aircon_subset_heating[["Type"]] == "Reverse Cycle")
+aircon_unknown_heating = subset(aircon_subset_heating, is.na(aircon_subset_heating[["sri2010_heat"]]) & aircon_subset_heating[["Type"]] == "Reverse Cycle")
 
 ```
 ```{r}
